@@ -1,0 +1,179 @@
+import React, { Fragment, useEffect, useState } from "react";
+import { Button, Card, Col, Row } from "react-bootstrap";
+// import { BasicTable, ResponsiveDataTable, Savetable, columns, data } from "@/shared/data/tables/datatablesdata";
+import  BasicTableVendor from "./DataTables/DataTablesVendor";
+import Seo from "@/shared/layout-components/seo/seo";
+import PageHeaderVms from "./Component/PageHeaderVms";
+import LoadersSimUmira from "./Component/LoaderSimUmira";
+import Swal from "sweetalert2";
+import axios from "axios";
+import DetailMonitoringVms from "./DetailMonitoringVms";
+
+const MonitoringPengajuan = () => {
+
+    const [datatable, setDatatable] = useState([]);
+    const [openDetail, setOpenDetail] = useState({
+        open_modal: false,
+        data_detail: {}
+    })
+    const [loader, setLoader] = useState();
+    const COLUMNS = [
+        {
+            Header: "ID Pengajuan",
+            accessor: "id_pengajuan",
+        },
+        {
+            Header: "Nama Perusahaan",
+            accessor: "nama_perusahaan",
+        },
+        // {
+        //     Header: "Alamat Perusahaan",
+        //     accessor: "alamat_perusahaan",
+        // },
+        {
+            Header: "Kualifikasi Usaha",
+            accessor: "kualifikasi_usaha",
+        },
+        {
+            Header: "Klasifikasi Usaha",
+            accessor: "klasifikasi_usaha",
+        },
+        {
+            Header: "Kategori",
+            accessor: "kategori",
+        },
+        {
+            Header: "Spesialisasi",
+            accessor: "spesialisasi",
+        },
+        {
+            Header: "Status",
+            accessor: "status",
+        },
+        {
+            Header: "Detail",
+            accessor: "detail",
+        },
+    ];
+    useEffect(() => {
+        getPengajuan()
+    },[]);
+
+
+    const getPengajuan = async() => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        setLoader(true);
+        try {
+            const response = await axios.get(apiUrl+"/vms/monitoring-pengajuan", {
+                headers:{
+                    "Content-Type":"application/json",
+                    "Authorization": "Bearer "+localStorage.getItem("token")
+                }
+            });
+            const data = response.data.data;
+            if(data){
+                // console.log(data);
+                const pengajuanArr = [];
+                for await (const user of data){
+                     let status = '';
+                    //  console.log(user)
+                    if(user.isApproval === 1){
+                        status = "Di Setujui";
+                    }else if(user.isApproval === 2){
+                        status = "Di Tolak";
+                    }
+
+
+                    pengajuanArr.push({
+                            id_pengajuan: user.id_pengajuan,
+                            nama_perusahaan: user.nama_perusahaan,
+                            // alamat_perusahaan: user.alamat_perusahaan,
+                            kualifikasi_usaha: user.kualifikasi_usaha.kualifikasi,
+                            klasifikasi_usaha: user.klasifikasi_usaha,
+                            kategori: user.kategori,
+                            spesialisasi: user.spesialisasi,
+                            status: status,
+                            detail: <button className="btn btn-info" onClick={() => setOpenDetail({...openDetail, open_modal: true, data_detail: user})}>Detail</button>
+                    })
+                }
+                setDatatable(pengajuanArr)
+                // setSelectedOptions(kualifikasiArr);
+                // setTableData(userArr);
+                setLoader(false);
+            }
+            
+        } catch (error) {
+            console.log(error);
+            // setError(error.message);
+            setLoader(false);
+            swalAlert(error.message, error.status, "error");
+        }
+    }
+    const swalAlert = (message, title, icon) => {
+        let timerInterval;
+
+        Swal.fire({
+            title: title,
+            html: message,
+            icon: icon,
+            timer: 5000,
+            timerProgressBar: true,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            willClose: () => {
+                clearInterval(timerInterval);
+            },
+        }).then((result) => {
+            /* Read more about handling dismissals below */
+            if (result.dismiss === Swal.DismissReason.timer) {
+                console.log("I was closed by the timer");
+            }
+        });
+    }
+    return (
+        <Fragment>
+            <Seo title={"Monitoring Pengajuan VMS"} />
+            <PageHeaderVms title='Monitoring Pengajuan VMS' item='VMS List' active_item='Monitoring Pengajuan VMS' />
+            <LoadersSimUmira open={loader} />
+            <DetailMonitoringVms open={openDetail} setOpen={setOpenDetail} openLoader={loader} setOpenLoader={setLoader} />
+            <Row>
+                <Col xl={12}>
+                    <Card className="custom-card">
+                        <Card.Header>
+                            <div className="card-title">
+                                Monitoring Pengajuan VMS
+                            </div>
+                        </Card.Header>
+                        <Card.Body>
+                            <div className="table-responsive">
+                                <BasicTableVendor column={COLUMNS} datatable={datatable}/>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+            {/* <Row>
+                <Col xl={12}>
+                    <Card className="custom-card">
+                        <Card.Header>
+                            <div className="card-title">
+                                Responsive Datatable
+                            </div>
+                        </Card.Header>
+                        <Card.Body>
+                            <ResponsiveDataTable />
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row> */}
+            
+
+        </Fragment>
+    );
+
+
+}
+MonitoringPengajuan.layout = "ContentlayoutVms";
+
+export default MonitoringPengajuan;
