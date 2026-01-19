@@ -10,14 +10,17 @@ import LoadersSimUmira from "./Component/LoaderSimUmira";
 import Swal from "sweetalert2";
 import axios from "axios";
 import DetailPengajuanVms from "./DetailPengajuanVms";
+import { useRouter } from "next/router";
 const ListPengajuanVms = () => {
     
     const [datatable, setDatatable] = useState([]);
-    const [idApproval, setIdApproval] = useState();
+    const [idApproval, setIdApproval] = useState("");
     const [openDetail, setOpenDetail] = useState({
         open_modal: false,
         data_detail: {}
-    })
+    });
+    const [reload, setReload] = useState(false);
+    const router = useRouter();
     const [loader, setLoader] = useState();
     const COLUMNS = [
         {
@@ -29,22 +32,25 @@ const ListPengajuanVms = () => {
             accessor: "nama_perusahaan",
         },
         {
-            Header: "Alamat Perusahaan",
-            accessor: "alamat_perusahaan",
+            Header: "Tanggal Pengajuan",
+            accessor: "tanggal_pengajuan",
         },
         {
             Header: "Kualifikasi Usaha",
             accessor: "kualifikasi_usaha",
+        },
+        {
+            Header: "Klasifikasi Usaha",
+            accessor: "klasifikasi_usaha",
         },
        
         {
             Header: "Kategori",
             accessor: "kategori",
         },
-        
         {
-            Header: "No Handphone",
-            accessor: "no_hp",
+            Header: "Spesialisasi",
+            accessor: "spesialisasi",
         },
         {
             Header: "Detail",
@@ -57,7 +63,10 @@ const ListPengajuanVms = () => {
     ];
     useEffect(() => {
         getPengajuan()
-    },[idApproval]);
+        if(!localStorage.getItem("token")){
+			router.push("/apps/LoginRegister");
+		}
+    },[idApproval, reload]);
     const approval = async(id) => {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         setLoader(true);
@@ -75,11 +84,19 @@ const ListPengajuanVms = () => {
                 // console.log(data);
                 setLoader(false);
                 swalAlert("Approval Data Vendor", "Berhasil", "success");
+                setIdApproval("00");
+                // router.reload("/apps/ListPengajuanVms");
             }
             
         } catch (error) {
             console.log(error);
             // setError(error.message);
+            if(error.status == 401){
+                localStorage.removeItem("token");
+                localStorage.removeItem("menu");
+                localStorage.removeItem("user");
+                router.push("/apps/LoginRegister");
+            }
             setLoader(false);
             swalAlert(error.message, error.status, "error");
         }
@@ -102,11 +119,19 @@ const ListPengajuanVms = () => {
                 // console.log(data);
                 setLoader(false);
                 swalAlert(data.message, "Berhasil", "success");
+                setIdApproval("01");
+                // router.reload("/apps/ListPengajuanVms");
             }
             
         } catch (error) {
-            console.log(error);
+            // console.log(error);
             // setError(error.message);
+            if(error.status == 401){
+                localStorage.removeItem("token");
+                localStorage.removeItem("menu");
+                localStorage.removeItem("user");
+                router.push("/apps/LoginRegister");
+            }
             setLoader(false);
             swalAlert(error.message, error.status, "error");
         }
@@ -114,11 +139,11 @@ const ListPengajuanVms = () => {
 
     const handleApprove = async(id) => {
         const res = await AlertConfirm("Approve Pengajuan", "warning", "Approve", false);
-        setIdApproval(id);
+        // setIdApproval(id);
         // console.log(idApproval);
         if(res.status){
             // console.log(res)
-            setIdApproval(id);
+            // setIdApproval(id);
             approval(id);
         }
     }
@@ -126,10 +151,10 @@ const ListPengajuanVms = () => {
          const res = await AlertConfirm("Reject Pengajuan", "warning", "Reject", true);
         // setUserId(user_id);
         // console.log(idApproval);
-        setIdApproval(id);
+        // setIdApproval(id);
         if(res.status){
             // console.log(res)
-            setIdApproval(id);
+            // setIdApproval(id);
             reject(id, res.value);
         }
     }
@@ -153,12 +178,13 @@ const ListPengajuanVms = () => {
                     pengajuanArr.push({
                             id_pengajuan: user.id_pengajuan,
                             nama_perusahaan: user.nama_perusahaan,
-                            alamat_perusahaan: user.alamat_perusahaan,
-                            kualifikasi_usaha: user.kualifikasi_usaha.kualifikasi,
-                            // klasifikasi_usaha: user.klasifikasi_usaha,
+                            tanggal_pengajuan: new Date(user.tanggal_pengajuan).toLocaleString("id-ID"),
+                           // kualifikasi_usaha: user.kualifikasi_usaha.kualifikasi,
+			   kualifikasi_usaha: (user.kualifikasi_usaha)?user.kualifikasi_usaha.kualifikasi:"-",
+                            klasifikasi_usaha: user.klasifikasi_usaha,
                             kategori: user.kategori,
-                            // spesialisasi: user.spesialisasi,
-                            no_hp: user.no_hp_pic,
+                            spesialisasi: user.spesialisasi,
+                            // no_hp: user.no_hp_pic,
                             detail: <button className="btn btn-info" onClick={() => setOpenDetail({...openDetail, open_modal: true, data_detail: user})}>Detail</button>,
                             aksi:   <div className="d-flex flex-row gap-2">
                                         <button className="btn btn-success" onClick={() => {handleApprove(user.id_vendor)}}>Approve</button>
@@ -175,6 +201,12 @@ const ListPengajuanVms = () => {
         } catch (error) {
             console.log(error);
             // setError(error.message);
+            if(error.status == 401){
+                localStorage.removeItem("token");
+                localStorage.removeItem("menu");
+                localStorage.removeItem("user");
+                router.push("/apps/LoginRegister");
+            }
             setLoader(false);
             swalAlert(error.message, error.status, "error");
         }
@@ -192,6 +224,7 @@ const ListPengajuanVms = () => {
                 Swal.showLoading();
             },
             willClose: () => {
+		setReload(prev => !prev);
                 clearInterval(timerInterval);
             },
         }).then((result) => {
@@ -244,6 +277,7 @@ const ListPengajuanVms = () => {
                         status: true,
                         value: result.value
                     }; 
+		    setReload(prev => !prev);
                      // ✅ user confirmed
             } else if (result.dismiss === Swal.DismissReason.cancel) {
                 // await swalWithBootstrapButtons.fire(

@@ -6,12 +6,25 @@ import { useEffect, useState } from "react";
 import { Modal, Button, Col } from "react-bootstrap";
 import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
+import { QRCodeCanvas } from "qrcode.react";
+import { useRouter } from "next/router";
+import DetailSuratSkt from './DetailSuratSkt';
 
 const DetailVendorVms = ({open, setOpen, openLoader, setOpenLoader}) => {
     const [modalDokumen, setModalDokumen] = useState();
     const [frameSrc, setFrameSrc] = useState();
+    const [dataDetailSurat, setDataDetailSurat] = useState();
+    const [idDetailDok, setIdDetailDok] = useState();
+    const [openModalSurat, setOpenModalSurat] = useState(
+        {
+            open_modal: false,
+            data: {}
+        }
+    );
+
+    const router = useRouter();
     const getFile = async(id) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         setOpenLoader(true);
         try {
             const response = await axios.get(apiUrl+"/vms/dokumen-file", {
@@ -33,6 +46,7 @@ const DetailVendorVms = ({open, setOpen, openLoader, setOpenLoader}) => {
                     new Blob([data], {type: "application/pdf"})
                 );
                 setFrameSrc(fileURL)
+                setIdDetailDok(id);
                 // setSelectedOptions(kualifikasiArr);
                 // setTableData(userArr);
                 setOpenLoader(false);
@@ -41,6 +55,63 @@ const DetailVendorVms = ({open, setOpen, openLoader, setOpenLoader}) => {
         } catch (error) {
             console.log(error);
             // setError(error.message);
+            if(error.status == 401){
+                localStorage.removeItem("token");
+                localStorage.removeItem("menu");
+                localStorage.removeItem("user");
+                router.push("/apps/LoginRegister");
+            }
+            setOpenLoader(false);
+            swalAlert(error.message, error.status, "error");
+        }
+   }
+   const handleDownload = () => {
+        donwloadFile();
+   }
+   const donwloadFile = async() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        setOpenLoader(true);
+        try {
+            const response = await axios.get(apiUrl+"/vms/dokumen-file", {
+                responseType: "blob",
+                headers:{
+                    "Content-Type":"application/json",
+                    "Authorization": "Bearer "+localStorage.getItem("token")
+                },
+                params:{
+                    id: idDetailDok
+                }
+            });
+            // const typeData = {};
+            // typeData.type = "application/pdf";
+            const data = response.data;
+            if(data){
+                // console.log(data);
+                const fileURL = window.URL.createObjectURL(
+                    new Blob([data], {type: "application/pdf"})
+                );
+                const a = document.createElement("a");
+                a.href = fileURL;
+                a.download = idDetailDok+"-dokumen.pdf"; // custom filename
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(fileURL);
+                // setFrameSrc(fileURL)
+                // // setSelectedOptions(kualifikasiArr);
+                // // setTableData(userArr);
+                setOpenLoader(false);
+            }
+            
+        } catch (error) {
+            console.log(error);
+            // setError(error.message);
+            if(error.status == 401){
+                localStorage.removeItem("token");
+                localStorage.removeItem("menu");
+                localStorage.removeItem("user");
+                router.push("/apps/LoginRegister");
+            }
             setOpenLoader(false);
             swalAlert(error.message, error.status, "error");
         }
@@ -71,11 +142,23 @@ const DetailVendorVms = ({open, setOpen, openLoader, setOpenLoader}) => {
             }
         });
     }
-
+    const Surat = () => {
+        return(
+            <Modal size="lg" show={openModalSurat.open_modal} onHide={() => setOpenModalSurat({...openModalSurat, open_modal: false})} className="fade" id="exampleModal" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <Modal.Body className="">
+                  <DetailSuratSkt  data={open.data_detail}/>
+                </Modal.Body>
+                <Modal.Footer className="">
+                    <Button variant='contained' type="button" className="btn btn-secondary" onClick={() => setOpenModalSurat({...openModalSurat, open_modal: false})}
+                        data-bs-dismiss="modal">Close</Button>
+                </Modal.Footer>
+            </Modal>
+        )
+    }
 
    const LihatDokumen = () =>{
     return(
-        <Modal size="lg" show={modalDokumen} onHide={() => setModalDokumen(false)} className="fade" id="exampleModal" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <Modal size="lg" show={modalDokumen} onHide={() => {setFrameSrc();setModalDokumen(false)}} className="fade" id="exampleModal" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <Modal.Header closeButton>
                 <h6 className="modal-title" id="exampleModalLabel">Dokumen Upload</h6>
             </Modal.Header>
@@ -90,7 +173,9 @@ const DetailVendorVms = ({open, setOpen, openLoader, setOpenLoader}) => {
                 />
             </Modal.Body>
             <Modal.Footer className="">
-                <Button variant='contained' type="button" className="btn btn-secondary" onClick={() => setModalDokumen(false)}
+                <Button variant='contained' type="button" className="btn btn-primary" onClick={handleDownload}
+                    data-bs-dismiss="modal">Download</Button>
+                <Button variant='contained' type="button" className="btn btn-secondary" onClick={() => {setFrameSrc();setModalDokumen(false)}}
                     data-bs-dismiss="modal">Close</Button>
            
             </Modal.Footer>
@@ -98,9 +183,16 @@ const DetailVendorVms = ({open, setOpen, openLoader, setOpenLoader}) => {
     )
    }
 
+   const detailSkt = () => {
+    // setOpen({...open, open_modal: false});
+    setOpenModalSurat({...openModalSurat, open_modal: true})
+    // router.push("/apps/DetailSurat");
+   }
+
     return(
         <Modal show={open.open_modal} onHide={() => setOpen({...open, open_modal: false})} className="fade" id="exampleModal" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <LihatDokumen />
+            <Surat />
             <Modal.Header closeButton>
                 <h6 className="modal-title" id="exampleModalLabel">Detail Vendor</h6>
             </Modal.Header>
@@ -132,7 +224,7 @@ const DetailVendorVms = ({open, setOpen, openLoader, setOpenLoader}) => {
                     </Col>
                     <Col xl={6}>
                         <label htmlFor="contact-address-firstname" className="form-label ">Spesialisasi :</label>
-                        <input type="text" className="form-control" id="contact-address-firstname" placeholder="Spesialisasi" value={open.data_detail.spesialis} disabled/>
+                        <input type="text" className="form-control" id="contact-address-firstname" placeholder="Spesialisasi" value={open.data_detail.spesialisasi} disabled/>
                     </Col>
                     
                     <Col xl={6}>
@@ -171,15 +263,26 @@ const DetailVendorVms = ({open, setOpen, openLoader, setOpenLoader}) => {
                     </Col>
                     <Col xl={6}>
                         <label htmlFor="contact-address-firstname" className="form-label ">Tanggal Awal SKT</label>
-                        <input type="text" className="form-control" id="contact-address-firstname" placeholder="Tanggal awal skt" value={new Date(open.data_detail.tanggal_awal_skt).toLocaleDateString("en-US", { 
+                        <input type="text" className="form-control" id="contact-address-firstname" placeholder="Tanggal awal skt" value={new Date(open.data_detail.tanggal_awal_skt).toLocaleDateString("id-ID", { 
   weekday: "long", year: "numeric", month: "long", day: "numeric" 
 })} disabled/>
                     </Col>
                     <Col xl={6}>
                         <label htmlFor="contact-address-firstname" className="form-label ">Tanggal Akhir SKT</label>
-                        <input type="text" className="form-control" id="contact-address-firstname" placeholder="Tanggal akhir skt" value={new Date(open.data_detail.tanggal_akhir_skt).toLocaleDateString("en-US", { 
+                        <input type="text" className="form-control" id="contact-address-firstname" placeholder="Tanggal akhir skt" value={new Date(open.data_detail.tanggal_akhir_skt).toLocaleDateString("id-ID", { 
   weekday: "long", year: "numeric", month: "long", day: "numeric" 
 })} disabled/>
+                    </Col>
+                    <Col xl={12} className="d-flex flex-column align-items-center">
+                        <label htmlFor="contact-address-firstname" className="form-label ">Approved By</label>
+                        <QRCodeCanvas value={open.data_detail.approvedBy+"-"+open.data_detail.approvedAt} size={200}
+                            bgColor="#ffffff"
+                            fgColor="#000000"
+                            level="H"
+                            includeMargin={true}
+                         />
+                         <label htmlFor="contact-address-firstname" className="form-label ">{open.data_detail.approvedBy}</label>
+                         <label htmlFor="contact-address-firstname" className="form-label ">{new Date(open.data_detail.approvedAt).toLocaleString("id-ID")}</label>
                     </Col>
                     <hr />
                     <Col xl={12}>
@@ -196,6 +299,8 @@ const DetailVendorVms = ({open, setOpen, openLoader, setOpenLoader}) => {
                 </div>
             </Modal.Body>
             <Modal.Footer className="">
+                <Button variant='contained' type="button" className="btn btn-success" onClick={detailSkt}
+                    data-bs-dismiss="modal">Lihat SKT</Button>
                 <Button variant='contained' type="button" className="btn btn-secondary" onClick={() => setOpen({...open, open_modal: false})}
                     data-bs-dismiss="modal">Close</Button>
            

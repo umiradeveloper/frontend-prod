@@ -7,6 +7,7 @@ import PageHeaderVms from "./Component/PageHeaderVms";
 import LoadersSimUmira from "./Component/LoaderSimUmira";
 import Swal from "sweetalert2";
 import axios from "axios";
+import { useRouter } from "next/router";
 import DetailMonitoringVms from "./DetailMonitoringVms";
 
 const MonitoringPengajuan = () => {
@@ -16,6 +17,7 @@ const MonitoringPengajuan = () => {
         open_modal: false,
         data_detail: {}
     })
+    const router = useRouter();
     const [loader, setLoader] = useState();
     const COLUMNS = [
         {
@@ -26,10 +28,10 @@ const MonitoringPengajuan = () => {
             Header: "Nama Perusahaan",
             accessor: "nama_perusahaan",
         },
-        // {
-        //     Header: "Alamat Perusahaan",
-        //     accessor: "alamat_perusahaan",
-        // },
+        {
+            Header: "Tanggal Pengajuan",
+            accessor: "tanggal_pengajuan",
+        },
         {
             Header: "Kualifikasi Usaha",
             accessor: "kualifikasi_usaha",
@@ -57,7 +59,10 @@ const MonitoringPengajuan = () => {
     ];
     useEffect(() => {
         getPengajuan()
-    },[]);
+        if(!localStorage.getItem("token")){
+			router.push("/apps/LoginRegister");
+		}
+    },[openDetail.open_modal]);
 
 
     const getPengajuan = async() => {
@@ -81,14 +86,17 @@ const MonitoringPengajuan = () => {
                         status = "Di Setujui";
                     }else if(user.isApproval === 2){
                         status = "Di Tolak";
+                    }else if(user.isApproval === null){
+                        status = "Dalam Pengajuan";
                     }
 
 
                     pengajuanArr.push({
                             id_pengajuan: user.id_pengajuan,
                             nama_perusahaan: user.nama_perusahaan,
-                            // alamat_perusahaan: user.alamat_perusahaan,
-                            kualifikasi_usaha: user.kualifikasi_usaha.kualifikasi,
+                            tanggal_pengajuan: new Date(user.tanggal_pengajuan).toLocaleString("id-ID"),
+                           // kualifikasi_usaha: user.kualifikasi_usaha.kualifikasi,
+			   kualifikasi_usaha: (user.kualifikasi_usaha)?user.kualifikasi_usaha.kualifikasi:"-",
                             klasifikasi_usaha: user.klasifikasi_usaha,
                             kategori: user.kategori,
                             spesialisasi: user.spesialisasi,
@@ -105,6 +113,12 @@ const MonitoringPengajuan = () => {
         } catch (error) {
             console.log(error);
             // setError(error.message);
+            if(error.status == 401){
+                localStorage.removeItem("token");
+                localStorage.removeItem("menu");
+                localStorage.removeItem("user");
+                router.push("/apps/LoginRegister");
+            }
             setLoader(false);
             swalAlert(error.message, error.status, "error");
         }

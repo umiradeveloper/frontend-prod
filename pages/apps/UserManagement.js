@@ -9,6 +9,8 @@ import LoadersSimUmira from "./Component/LoaderSimUmira";
 import axios from "axios";
 import Swal from "sweetalert2";
 import CreateUser from "./Component/ModalTambahUser";
+import ModalUpdateUser from "./Component/ModalUpdateUser";
+import { useRouter } from "next/router";
 const UserManagement= () => {
     const [loader, setLoader] = useState(false);
     const [tableData, setTableData] = useState([]);
@@ -16,10 +18,20 @@ const UserManagement= () => {
     const [openTambahUser, setOpenTambahUser] = useState({
         open_modal: false
     })
+   const [reload, setReload] = useState(false);
+    const [openUpdateUser, setOpenUpdateUser] = useState({
+        open_modal: false,
+        user:{},
+        user_id: ''
+    })
+    const router = useRouter();
     useEffect(() => {
         // console.log(localStorage.getItem("token"))
-        getUser()
-    },[userId, openTambahUser.open_modal])
+        getUser();
+        if(!localStorage.getItem("token")){
+			router.push("/apps/LoginRegister");
+		}
+    },[userId, openTambahUser.open_modal, openUpdateUser.open_modal, reload])
     
     const COLUMNS = [
         {
@@ -63,6 +75,7 @@ const UserManagement= () => {
                 }
             });
             const data = response.data.data;
+            // console.log(response);
 			if(data){
 				// console.log(data);
                 const userArr = [];
@@ -74,18 +87,18 @@ const UserManagement= () => {
                     if(user.isApproval === 2){
                         approval = "Reject";
                     }
-                    
+                    console.log(user.role);
                     if(user.isApproval === 0 || user.isApproval === null){
                         approval = <ActionApprove user_id={user.id_user} />;
                     }
                     userArr.push({
                         nama_perusahaan: user.nama,
                         email: user.email,
-                        role: user.role.nama_role,
+                        role: user.role?.nama_role,
                         branch: user.branch.nama_branch,
                         statusApproval: approval,
                         catatan: user.catatan,
-                        aksi: <AksiUser user_id={user.id_user} />
+                        aksi: <AksiUser user_id={user.id_user} user={user} />
                     })
                 }
                 setTableData(userArr);
@@ -95,6 +108,12 @@ const UserManagement= () => {
         } catch (error) {
             console.log(error);
             // setError(error.message);
+            if(error.status == 401){
+                localStorage.removeItem("token");
+                localStorage.removeItem("menu");
+                localStorage.removeItem("user");
+                router.push("/apps/LoginRegister");
+            }
 			setLoader(false);
 			swalAlert(error.message, error.status, "error");
         }
@@ -123,6 +142,12 @@ const UserManagement= () => {
         }catch(error){
             console.log(error);
             // setError(error.message);
+            if(error.status == 401){
+                localStorage.removeItem("token");
+                localStorage.removeItem("menu");
+                localStorage.removeItem("user");
+                router.push("/apps/LoginRegister");
+            }
             setLoader(false);
             swalAlert(error.message, error.status, "error");
         }
@@ -152,6 +177,12 @@ const UserManagement= () => {
         }catch(error){
             console.log(error);
             // setError(error.message);
+            if(error.status == 401){
+                localStorage.removeItem("token");
+                localStorage.removeItem("menu");
+                localStorage.removeItem("user");
+                router.push("/apps/LoginRegister");
+            }
             setLoader(false);
             swalAlert(error.message, error.status, "error");
         }
@@ -178,6 +209,12 @@ const UserManagement= () => {
         }catch(error){
             console.log(error);
             // setError(error.message);
+            if(error.status == 401){
+                localStorage.removeItem("token");
+                localStorage.removeItem("menu");
+                localStorage.removeItem("user");
+                router.push("/apps/LoginRegister");
+            }
             setLoader(false);
             swalAlert(error.message, error.status, "error");
         }
@@ -204,6 +241,10 @@ const UserManagement= () => {
             HapusUser(user_id);
         }
     }
+    const handleUpdate = async(user_id, user) => {
+        setOpenUpdateUser({open_modal: true, user: user, user_id: user_id});
+    }
+    
     const handleReject = async(user_id) => {
         // console.log(user_id);
         const res = await AlertConfirm("Reject Data User", "warning", "Reject", true);
@@ -255,6 +296,7 @@ const UserManagement= () => {
                     status: true,
                     value: result.value
                 }; 
+		setReload(prev => !prev);
                  // ✅ user confirmed
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             // await swalWithBootstrapButtons.fire(
@@ -294,14 +336,14 @@ const UserManagement= () => {
             </>
         )
     }
-    const AksiUser = ({user_id}) => {
+    const AksiUser = ({user_id, user = null}) => {
         return(
             <>
             <Button
                 variant=""
                 className="btn btn-info me-1"
                 type="button"
-                onClick={() => handleHapus(user_id)}
+                onClick={() => handleUpdate(user_id, user)}
             >
                 Edit
             </Button>
@@ -331,6 +373,7 @@ const UserManagement= () => {
                 Swal.showLoading();
             },
             willClose: () => {
+		setReload(prev => !prev);
                 clearInterval(timerInterval);
             },
         }).then((result) => {
@@ -347,6 +390,7 @@ const UserManagement= () => {
             <PageHeaderVms title='User Management' item='Settings' active_item='User Management' />
             <LoadersSimUmira open={loader} />
             <CreateUser open={openTambahUser} setOpen={setOpenTambahUser} setOpenLoader={setLoader} />
+            <ModalUpdateUser open={openUpdateUser} setOpen={setOpenUpdateUser} setOpenLoader={setLoader}/>
             <Row>
                 <Col xl={12}>
                     <Card className="custom-card">
