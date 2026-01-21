@@ -185,11 +185,10 @@ const LoginRegister = () => {
 										<Row className="row-sm">
 
 											<Col lg={6} xl={5} className="d-none d-lg-block text-center bg-primary details">
-												<div className="mt-5 pt-4 p-2 position-absolute">
+												<div className="mt-5 pt-4 p-1 position-absolute">
 													<Link href={"/apps/DashboardVms"}><img src={`${process.env.NODE_ENV === "production" ? basePath : ""}/assets/images/brand-logos/logo-umira.png`} className="header-brand-img mb-4" alt="logo" /></Link>
 													<div className="clearfix"></div>
 													{/* <img src={`${process.env.NODE_ENV === "production" ? basePath : ""}/assets/images/svgs/user.svg`} className="ht-100 mb-0" alt="user" /> */}
-													<h5 className="mt-4">Information Management System</h5>
 													<span className="text-white-6 fs-13 mb-5 mt-xl-0">Login account, discover and connect with information management system umira</span>
 												</div>
 											</Col>
