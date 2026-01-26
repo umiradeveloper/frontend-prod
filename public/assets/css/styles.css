@@ -42235,5 +42235,21 @@ pre[class*=language-] > code {
 th.gridjs-th {
   width: 150px !important;
 }
+.header-brand-img{
+  width: 400px !important;
+  height: auto;
+  padding: none;
+}
+.app-header .header-logo img {
+  height: 40px !important;
+  width: auto;
+  object-fit: contain;
+} 
+.header-logo{
+  width: 164px !important;
+}
+.main-sidebar-header{
+  border-radius: 0 0px 20px 0 ;
+}
 
 /*# sourceMappingURL=styles.css.map */
