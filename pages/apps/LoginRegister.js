@@ -112,19 +112,31 @@ const LoginRegister = () => {
 						window.location.href = "https://superapps.simumira.com";
 					}
 				});
+			} else {
+				const dataSession = {
+					email: response.data.data.user.email,
+					role: response.data.data.user.role.nama_role,
+					user_id: response.data.data.user.id_user,
+					branch_id: response.data.data.user.branch.id_branch,
+					role_id: response.data.data.user.role.id_role
+				}
+				localStorage.setItem("token", token);
+				localStorage.setItem("user", JSON.stringify(dataSession));
+				localStorage.setItem("menu", JSON.stringify(response.data.data.menu));
+				navigate.push("/apps/DashboardVms");
 			}
 
-			const dataSession = {
-				email: response.data.data.user.email,
-				role: response.data.data.user.role.nama_role,
-				user_id: response.data.data.user.id_user,
-				branch_id: response.data.data.user.branch.id_branch,
-				role_id: response.data.data.user.role.id_role
-			}
-			localStorage.setItem("token", token);
-			localStorage.setItem("user", JSON.stringify(dataSession));
-			localStorage.setItem("menu", JSON.stringify(response.data.data.menu));
-			navigate.push("/apps/DashboardVms");
+			// const dataSession = {
+			// 	email: response.data.data.user.email,
+			// 	role: response.data.data.user.role.nama_role,
+			// 	user_id: response.data.data.user.id_user,
+			// 	branch_id: response.data.data.user.branch.id_branch,
+			// 	role_id: response.data.data.user.role.id_role
+			// }
+			// localStorage.setItem("token", token);
+			// localStorage.setItem("user", JSON.stringify(dataSession));
+			// localStorage.setItem("menu", JSON.stringify(response.data.data.menu));
+			// navigate.push("/apps/DashboardVms");
 
 			// if (user.role.nama_role.toLowerCase() === "vendor") {
 			// 	navigate.push("/apps/DashboardVms");
