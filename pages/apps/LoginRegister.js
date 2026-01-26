@@ -13,27 +13,27 @@ const Select = dynamic(() => import("react-select"), { ssr: false });
 
 const LoginRegister = () => {
 	const [passwordshowLogin, setpasswordshowLogin] = useState(false);
-    const [passwordshowregister, setpasswordshowregister] = useState(false);
-    const [showToast, setShowToast] = useState(false);
-    const [messageToast, setMessageToast] = useState(null);
-    const [headerToast, setHeaderToast] = useState(null);
-    const [colorToast, setColorToast] = useState(null);
+	const [passwordshowregister, setpasswordshowregister] = useState(false);
+	const [showToast, setShowToast] = useState(false);
+	const [messageToast, setMessageToast] = useState(null);
+	const [headerToast, setHeaderToast] = useState(null);
+	const [colorToast, setColorToast] = useState(null);
 	const [branch, setBranch] = useState();
 
 	const [loader, setLoader] = useState(false);
 	const router = useRouter();
 	const [err, setError] = useState("");
 	const [errRegister, setErrorRegister] = useState("");
-	
-    const [dataParams, setDataParams] = useState({
-        email:"",
-        password:""
-    })
+
+	const [dataParams, setDataParams] = useState({
+		email: "",
+		password: ""
+	})
 	const [dataRegister, setDataRegister] = useState({
 		nama_perusahaan: "",
 		no_hp: "",
-		email:"",
-		password:"",
+		email: "",
+		password: "",
 		branch: ""
 	})
 	// const { email, password } = data;
@@ -49,45 +49,71 @@ const LoginRegister = () => {
 
 	useEffect(() => {
 		getBranch();
-	},[])
+	}, [])
 
-    const register = async () => {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        setLoader(true);
-        try {
-            const response = await axios.post(apiUrl+"/auth/register-vendor", {nama_perusahaan: dataRegister.nama_perusahaan, email: dataRegister.email, password: dataRegister.password, kode_branch: dataRegister.branch, no_hp: dataRegister.no_hp}, {
-                headers:{
-                    "Content-Type":"application/json"
-                }
-            });
-            if(response.data.success){
+	const register = async () => {
+		const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+		setLoader(true);
+		try {
+			const response = await axios.post(apiUrl + "/auth/register-vendor", { nama_perusahaan: dataRegister.nama_perusahaan, email: dataRegister.email, password: dataRegister.password, kode_branch: dataRegister.branch, no_hp: dataRegister.no_hp }, {
+				headers: {
+					"Content-Type": "application/json"
+				}
+			});
+			if (response.data.success) {
 				setLoader(false);
 				swalAlert("Registrasi berhasil tunggu approval", "Register", "success");
 				router.reload();
-				
+
 			}
-            
-        } catch (error) {
-            console.log(error);
-            setErrorRegister(error.response.data.message);
+
+		} catch (error) {
+			console.log(error);
+			setErrorRegister(error.response.data.message);
 			setLoader(false);
 			swalAlert(error.response.data.message, error.status, "error");
-        }
+		}
 		//  setLoader(true);
-    }
-    const login = async () => {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        setLoader(true);
-        try {
-            const response = await axios.post(apiUrl+"/auth/login", {email: dataParams.email, password: dataParams.password}, {
-                headers:{
-                    "Content-Type":"application/json"
-                }
-            });
-            const token = response.data.data.token;
-			if(token){
+	}
+	const login = async () => {
+		const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+		setLoader(true);
+		try {
+			const response = await axios.post(apiUrl + "/auth/login", { email: dataParams.email, password: dataParams.password }, {
+				headers: {
+					"Content-Type": "application/json"
+				}
+			});
+
+			const token = response.data.data.token;
+			if (token) {
 				setLoader(false);
 			}
+
+			if (response.data.data.user.role.kode_role != "01") {
+				let timerInterval;
+				Swal.fire({
+					title: "Forbidden",
+					html: "Aplikasi ini hanya bisa di akses oleh Vendor",
+					icon: "error",
+					timer: 5000,
+					timerProgressBar: true,
+					didOpen: () => {
+						Swal.showLoading();
+					},
+					willClose: () => {
+						clearInterval(timerInterval);
+						window.location.href = "https://superapps.simumira.com";
+					},
+				}).then((result) => {
+					/* Read more about handling dismissals below */
+					if (result.dismiss === Swal.DismissReason.timer) {
+						console.log("I was closed by the timer");
+						window.location.href = "https://superapps.simumira.com";
+					}
+				});
+			}
+
 			const dataSession = {
 				email: response.data.data.user.email,
 				role: response.data.data.user.role.nama_role,
@@ -95,51 +121,58 @@ const LoginRegister = () => {
 				branch_id: response.data.data.user.branch.id_branch,
 				role_id: response.data.data.user.role.id_role
 			}
-            localStorage.setItem("token", token);
-            localStorage.setItem("user", JSON.stringify(dataSession));
-            localStorage.setItem("menu", JSON.stringify(response.data.data.menu));
-            navigate.push("/apps/DashboardVms");
-        } catch (error) {
-            console.log(error);
-            setErrorRegister(error.response.data.message);
+			localStorage.setItem("token", token);
+			localStorage.setItem("user", JSON.stringify(dataSession));
+			localStorage.setItem("menu", JSON.stringify(response.data.data.menu));
+			navigate.push("/apps/DashboardVms");
+
+			// if (user.role.nama_role.toLowerCase() === "vendor") {
+			// 	navigate.push("/apps/DashboardVms");
+			// } else {
+			// 	window.location.href = "https://superapps.simumira.com";
+			// }
+
+		} catch (error) {
+			console.log(error);
+			setErrorRegister(error.response.data.message);
 			setLoader(false);
 			swalAlert(error.response.data.message, error.status, "error");
-        }
-    }
+		}
+	}
 
-	const getBranch = async() => {
+	const getBranch = async () => {
 		const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        setLoader(true);
-        try {
-            const response = await axios.get(apiUrl+"/master/get-branch", {
-                headers:{
-                    "Content-Type":"application/json"
-                }
-            });
-            const data = response.data.data;
-			if(data){
+		setLoader(true);
+		try {
+			const response = await axios.get(apiUrl + "/master/get-branch", {
+				headers: {
+					"Content-Type": "application/json"
+				}
+			});
+			const data = response.data.data;
+			if (data) {
 				setLoader(false);
 				const branchArr = [];
-				for await (const b of data){
+				for await (const b of data) {
 					branchArr.push({
-						value:b.kode_branch,
+						value: b.kode_branch,
 						label: b.nama_branch
 					})
 				}
 				setBranch(branchArr);
 			}
-			
-        } catch (error) {
-            console.log(error);
-            setError(error.message);
+
+		} catch (error) {
+			console.log(error);
+			setError(error.message);
 			setLoader(false);
 			swalAlert(error.message, error.status, "error");
-        }
+		}
 	}
-	 const handleSelectBranch = (select) => {
-		setDataRegister({...dataRegister, branch: select.value})
-           
-    }
+	const handleSelectBranch = (select) => {
+		setDataRegister({ ...dataRegister, branch: select.value })
+
+	}
 
 	const swalAlert = (message, title, icon) => {
 		let timerInterval;
@@ -170,7 +203,7 @@ const LoginRegister = () => {
 			<Seo title={"Login And Register"} />
 			<LoadersSimUmira open={loader} />
 			<div className="page main-signin-wrapper">
-                <ToastContainerVms show={showToast} setShow={setShowToast} color={colorToast} message={messageToast} header={headerToast}/>
+				<ToastContainerVms show={showToast} setShow={setShowToast} color={colorToast} message={messageToast} header={headerToast} />
 				{/* {console.log("test",branch)} */}
 				<Row className="signpages text-center">
 					<Col md={12}>
@@ -205,7 +238,7 @@ const LoginRegister = () => {
 																{err && <Alert variant="danger">{err}</Alert>}
 																<Form.Group className="text-start form-group">
 																	<Form.Label>Email / No Handphone</Form.Label>
-																	<Form.Control type="text" placeholder="Email / Nomor Handphone" name='email' value={dataParams.email} onChange={(e) => setDataParams({...dataParams, email: e.target.value})} />
+																	<Form.Control type="text" placeholder="Email / Nomor Handphone" name='email' value={dataParams.email} onChange={(e) => setDataParams({ ...dataParams, email: e.target.value })} />
 																</Form.Group>
 																<div className="text-start form-group">
 																	<Form.Label>Password</Form.Label>
@@ -215,21 +248,21 @@ const LoginRegister = () => {
 																			name="password"
 																			type={(passwordshowLogin) ? "text" : "password"}
 																			value={dataParams.password}
-																			onChange={(e) => setDataParams({...dataParams, password: e.target.value})}
+																			onChange={(e) => setDataParams({ ...dataParams, password: e.target.value })}
 																			required />
 																		<button className="btn btn-light bg-transparent" type="button"
 																			onClick={() => setpasswordshowLogin(!passwordshowLogin)} id="button-addon2">
 																			<i className={`${passwordshowLogin ? "ri-eye-line" : "ri-eye-off-line"} align-middle`}></i></button>
 																	</div>
 																</div>
-																
-															
-																
+
+
+
 																<div className="d-grid">
 																	{/* <Link href={"/apps/DashboardVms"} className="btn btn-dark" onClick={Login1}>Sign In</Link> */}
-                                                                    <Button className="btn btn-dark" onClick={login}>
-                                                                        Login Account
-                                                                    </Button>
+																	<Button className="btn btn-dark" onClick={login}>
+																		Login Account
+																	</Button>
 																</div>
 															</form>
 															<div className="text-start mt-5 ms-0">
@@ -269,15 +302,15 @@ const LoginRegister = () => {
 															<form>
 																<Form.Group className="text-start form-group ">
 																	<label className="form-label">Nama Perusahaan</label>
-																	<input className="form-control" placeholder="Nama Perusahaan" type="text" value={dataRegister.nama_perusahaan} onChange={(e) => setDataRegister({...dataRegister, nama_perusahaan: e.target.value})} />
+																	<input className="form-control" placeholder="Nama Perusahaan" type="text" value={dataRegister.nama_perusahaan} onChange={(e) => setDataRegister({ ...dataRegister, nama_perusahaan: e.target.value })} />
 																</Form.Group>
 																<Form.Group className="text-start form-group">
 																	<label className="form-label">Email</label>
-																	<input className="form-control" placeholder="Email" type="text" value={dataRegister.email} onChange={(e) => setDataRegister({...dataRegister, email: e.target.value})} />
+																	<input className="form-control" placeholder="Email" type="text" value={dataRegister.email} onChange={(e) => setDataRegister({ ...dataRegister, email: e.target.value })} />
 																</Form.Group>
 																<Form.Group className="text-start form-group">
 																	<label className="form-label">No Handphone</label>
-																	<input className="form-control" placeholder="No Hp" type="text" value={dataRegister.no_hp} onChange={(e) => setDataRegister({...dataRegister, no_hp: e.target.value})} />
+																	<input className="form-control" placeholder="No Hp" type="text" value={dataRegister.no_hp} onChange={(e) => setDataRegister({ ...dataRegister, no_hp: e.target.value })} />
 																</Form.Group>
 																<Form.Group className="text-start form-group">
 																	<label className="form-label">Password</label>
@@ -287,7 +320,7 @@ const LoginRegister = () => {
 																			name="password"
 																			type={(passwordshowregister) ? "text" : "password"}
 																			value={dataRegister.password}
-																			onChange={(e) => setDataRegister({...dataRegister, password: e.target.value})}
+																			onChange={(e) => setDataRegister({ ...dataRegister, password: e.target.value })}
 																			required />
 																		<button className="btn btn-light bg-transparent" type="button"
 																			onClick={() => setpasswordshowregister(!passwordshowregister)} id="button-addon2">
@@ -296,13 +329,13 @@ const LoginRegister = () => {
 																</Form.Group>
 																<Form.Group className="text-start form-group">
 																	<Form.Label>Branch</Form.Label>
-																	<Select name="state" placeholder="Pilih Branch" options={branch} className="basic-multi-select" isSearchable menuPlacement='auto' classNamePrefix="Select2" onChange={handleSelectBranch}/>
+																	<Select name="state" placeholder="Pilih Branch" options={branch} className="basic-multi-select" isSearchable menuPlacement='auto' classNamePrefix="Select2" onChange={handleSelectBranch} />
 																</Form.Group>
 																<div className="d-grid">
 																	{/* <Link href={"/apps/DashboardVms"} className="btn btn-dark">Create Account</Link> */}
-                                                                    <Button className="btn btn-dark" onClick={register}>
-                                                                        Register Account
-                                                                    </Button>
+																	<Button className="btn btn-dark" onClick={register}>
+																		Register Account
+																	</Button>
 																</div>
 															</form>
 															{/* <div className="text-start mt-5 ms-0">
